@@ -1,0 +1,53 @@
+version: '3.5'
+
+services:
+  web:
+    build: ./producer_consumer
+    container_name: producer_consumer_web
+    command: python producer_consumer/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/wwa_producer_consumer
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+  ui:
+    build: ./frontend
+    container_name: producer_consumer_ui
+    ports:
+      - 3000:3000
+    volumes:
+      - ./wwa_producer_consumer:/frontend
+    depends_on:
+      - web
+  db:
+    image: postgres:14-alpine
+    container_name: producer_consumer_db
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_USER: admin
+      POSTGRES_DB: db01
+      POSTGRES_INITDB_ARGS: "-A md5"
+  redis:
+    image: redis:7-alpine
+    container_name: producer_consumer_redis
+    restart: always
+  celery_worker:
+    build: ./producer_consumer
+    container_name: producer_consumer_celery_worker
+    command: celery --workdir=./producer_consumer -A producer_consumer worker --loglevel=info
+    volumes:
+      - .:/wwa_producer_consumer
+    depends_on:
+      - web
+  celery_beat:
+    build: ./producer_consumer
+    container_name: producer_consumer_celery_beat
+    command: celery --workdir=./producer_consumer -A producer_consumer beat --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/wwa_producer_consumer
+    depends_on:
+      - web
+      - celery_worker
