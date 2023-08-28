@@ -1,4 +1,4 @@
-# Getting started with Nimble Contacts API
+# Getting started with Producer Consumer API
 
 ## Running
 
